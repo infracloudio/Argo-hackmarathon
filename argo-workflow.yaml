@@ -1,0 +1,122 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow                  #new type of k8s spec
+metadata:
+  generateName: argo-build-
+spec:
+  entrypoint: argo-build
+  arguments:
+    parameters:
+    - name: block-name
+      value: dummy-block-name
+    - name: version
+      value: dummy-version
+    - name: dockerhub-password
+      value: password
+    - name: dockerhub-username
+      value: username
+    - name: image-tag
+      value: test4   
+  volumeClaimTemplates:                 #define volume, same syntax as k8s Pod spec
+  - metadata:
+      name: workdir                     #name of volume claim
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
+
+  templates:
+  - name: argo-build
+    steps:
+    - - name: git-pull
+        template: git-pull
+    - - name: update-front-end
+        template: update-front-end    
+
+  - name: git-pull
+    inputs:
+      artifacts:
+      - name: argo-source
+        path: /app/src
+        git:
+          repo: https://github.com/SnehaMore20/front-end.git
+          revision: "argo-hack"
+    container:
+      image: docker:17.10
+      command: [sh, -c]
+      args: ["until docker ps; do sleep 3; done; cd /app/src/; GROUP='{{workflow.parameters.dockerhub-username}}' COMMIT='{{workflow.parameters.image-tag}}' ./scripts/build.sh; docker login -u='{{workflow.parameters.dockerhub-username}}' -p='{{workflow.parameters.dockerhub-password}}'; docker push '{{workflow.parameters.dockerhub-username}}'/argo-hack:'{{workflow.parameters.image-tag}}'"]
+      env:
+      - name: DOCKER_HOST               #the docker daemon can be access on the standard port on localhost
+        value: 127.0.0.1
+    sidecars:
+    - name: dind
+      image: docker:17.10-dind          #Docker already provides an image for running a Docker daemon
+      securityContext:
+        privileged: true                #the Docker daemon can only run in a privileged container
+      # mirrorVolumeMounts will mount the same volumes specified in the main container
+      # to the sidecar (including artifacts), at the same mountPaths. This enables
+      # dind daemon to (partially) see the same filesystem as the main container in
+      # order to use features such as docker volume binding.
+      mirrorVolumeMounts: true        
+    metadata:
+      labels:
+        block-name: "{{workflow.parameters.block-name}}"
+        version: "{{workflow.parameters.version}}"
+
+
+  - name: update-front-end
+    resource:                   #indicates that this is a resource template
+      action: apply            #can be any kubectl action (e.g. create, delete, apply, patch)
+      manifest: |               #put your kubernetes spec here
+        apiVersion: extensions/v1beta1
+        kind: Deployment
+        metadata:
+          name: front-end
+          namespace: default
+        spec:
+          replicas: 1
+          template:
+            metadata:
+              labels:
+                name: front-end
+            spec:
+              containers:
+              - name: front-end
+                image: "{{workflow.parameters.dockerhub-username}}/argo-hack:{{workflow.parameters.image-tag}}"
+                resources:
+                  limits:
+                    cpu: 300m
+                    memory: 1000Mi
+                  requests:
+                    cpu: 100m
+                    memory: 300Mi
+                ports:
+                - containerPort: 8079
+                env:
+                - name: SESSION_REDIS
+                  value: "true"
+                securityContext:
+                  runAsNonRoot: true
+                  runAsUser: 10001
+                  capabilities:
+                    drop:
+                      - all
+                  readOnlyRootFilesystem: true
+                livenessProbe:
+                  httpGet:
+                    path: /
+                    port: 8079
+                  initialDelaySeconds: 300
+                  periodSeconds: 3
+                readinessProbe:
+                  httpGet:
+                    path: /
+                    port: 8079
+                  initialDelaySeconds: 30
+                  periodSeconds: 3
+              nodeSelector:
+                beta.kubernetes.io/os: linux
+    metadata:
+      labels:
+        block-name: "{{workflow.parameters.block-name}}"
+        version: "{{workflow.parameters.version}}"        
