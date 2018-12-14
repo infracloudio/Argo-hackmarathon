@@ -29,7 +29,7 @@ spec:
   - name: argo-build
     steps:
     - - name: build
-        template: git-pull
+        template: build
     - - name: update-front-end
         template: update-front-end    
 
