@@ -9,11 +9,10 @@ Sock Shop demo application https://github.com/microservices-demo/microservices-d
 1. Consider sock shop demo app is deployed on cloud platform.
 2. Developer pushed new change to git
 3. Argo workflow
-
-         i. Pull latest git changes
-         ii.  Build new docker image 
-         iii. Push the docker images to dockerhub
-         iv. Update the deployment
+    - Pull latest git changes
+    - Build new docker image 
+    - Push the docker images to dockerhub
+    - Update the deployment
 
 
 ## Install Argo
@@ -35,6 +34,8 @@ kubectl -n argo port-forward deployment/argo-ui 8001:8001
 Then visit: http://127.0.0.1:8001 
 
 ## Execute Argo Workflow
+- update block-name(name of workflow),  version(version of workflow), dockerhub-password (password of dockerhub repo), dockerhub-username( username of dockerhub repo), image-tag(image tag) in the argo-workflow.yaml.
+- Execute workflow with following cammand
 ```
 argo submit argo-workflow.yaml
 ```
