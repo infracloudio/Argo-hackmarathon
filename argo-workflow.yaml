@@ -28,12 +28,12 @@ spec:
   templates:
   - name: argo-build
     steps:
-    - - name: git-pull
+    - - name: build
         template: git-pull
     - - name: update-front-end
         template: update-front-end    
 
-  - name: git-pull
+  - name: build
     inputs:
       artifacts:
       - name: argo-source
