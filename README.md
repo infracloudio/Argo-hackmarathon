@@ -2,16 +2,18 @@
 ---------------------------------------------------
 ## Project Details
 Consider you have a microservice application running on some cloud platform, whenever developer makes any changes in code the respective microservice should be updated.
+
 Sock Shop demo application https://github.com/microservices-demo/microservices-demo
 
 ## How it works?
 1. Consider sock shop demo app is deployed on cloud platform.
 2. Developer pushed new change to git
 3. Argo workflow
-   i. Pull latest git changes
-   ii.  Build new docker image 
-   iii. Push the docker images to dockerhub
-   iv. Update the deployment
+
+         i. Pull latest git changes
+         ii.  Build new docker image 
+         iii. Push the docker images to dockerhub
+         iv. Update the deployment
 
 
 ## Install Argo
